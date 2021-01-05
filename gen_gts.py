@@ -23,6 +23,36 @@ def gen_gts(cx,cy,width,height,sigma):
     # plt.colorbar()
     # plt.show()
     return ans
+def try_gen_gts(imgfile, pklfile, ind):
+    import cv2
+    import matplotlib.pyplot as plt
+    img = cv2.imread(imgfile)
+    img = img[:,:,0]/255
+    img = torch.FloatTensor(img)
+    
+    # get data
+    with open(pklfile, 'rb') as f:
+        data = pickle.load(f)
+    keypoint = data[str(ind)]['keypoint']
+
+    
+    ############################# config this #########################
+    # scale = 
+    
+    gts = []
+    for x,y in keypoint:
+        width = 480
+        height = 480
+        sigma = 10
+        gts.append(gen_gts(x,y,width, height, sigma))
+    gts = torch.stack(gts)
+    gts = gts.max(dim=0)[0].transpose(0,1)
+    img = img*0.5 + gts*0.7
+    # plt.title('scale='+str(scale))
+    plt.imshow(img)
+    plt.colorbar()
+    plt.show()
+        
 def generate_gts(gt_file, dist_folder, dim1, dim2, sigma):
     assert gt_file[-6:] == '.torch'
     gt = torch.load(gt_file)
@@ -52,9 +82,18 @@ def generate_gts(gt_file, dist_folder, dim1, dim2, sigma):
         # plt.imshow(torch.max(a, dim=0)[0])
         # plt.show()
 if __name__ == "__main__":
-    gt_file = 'training/gt_random_background_aug.torch'
-    dist_folder = 'training/gts/green/'
-    dim1 = (480,480)
-    dim2 = (60,60)
-    sigma = 18
-    generate_gts(gt_file, dist_folder, dim1, dim2, sigma)
+    # gt_file = 'training/gt_random_background_aug.torch'
+    # dist_folder = 'training/gts/green/'
+    # dim1 = (480,480)
+    # dim2 = (60,60)
+    # sigma = 18
+    # generate_gts(gt_file, dist_folder, dim1, dim2, sigma)
+    
+    
+    i = 1
+    imgfile = 'data015/temp/'+str(i).zfill(10)+'.bmp'
+    pklfile = 'data015/label.pkl'
+    try_gen_gts(imgfile, pklfile=pklfile, ind=1)
+    
+    # data = torch.load('data015/gt480.torch')
+    # print(len(data))
