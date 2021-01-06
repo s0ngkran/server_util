@@ -210,10 +210,13 @@ def find_scale(scale):
     return i
 
 if __name__ == "__main__":
+    os.chdir('data015')
     
-    get_scale()
-    i = find_scale(19)
-    read_data_html('bmp/',i)
+    # get_scale()
+    for scale in [19, 100, 200, 300, 400, 500, 600, 689]:
+        i = find_scale(scale)
+        # print()
+    # read_data_html('bmp/',i)
     
     # check aug_img in temp/ folder
     # for _,__, fname in os.walk('temp/'):

@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import pickle 
 import os
+from torch.nn import functional as F
 link = [[0,1] ,[0,3] ,[0,5] ,[0,7] ,[0,9], [1,2], [3,4], [5,6], [7,8], [9,10]]
 link = [[0,1]]
 def gt_vec(width, height, point, size=20, link=link):
@@ -28,19 +29,54 @@ def gt_vec(width, height, point, size=20, link=link):
         ans[ index*2] = torch.tensor(u_vec[0] * condition).reshape(width, height)  #x
         ans[ index*2+1] = torch.tensor(u_vec[1] * condition).reshape(width, height) #y
     return ans
+def distance (p1, p2):
+    distx = (p1[0]-p2[0])**2
+    disty = (p1[1]-p2[1])**2
+    return (distx+disty)**0.5
+def gen_25_keypoint(keypoint, width, height):
+    link25 =  [[0,1],[1,2],[2,3],[0,4],[5,6],[6,7],[7,8],[4,9],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17],[21,22],[22,23],[23,24]]
+    finger_link = [[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20]]
+    dist_finger = [distance(keypoint[i], keypoint[j]) for i,j in finger_link]
+    dist_finger = sum(dist_finger)/len(dist_finger)
+    
+    small_sigma = dist_finger*0.4
+    
+    keypoint = [np.array(i) for i in keypoint]
+    gtl = gt_vec(width, height, keypoint,size=small_sigma, link=link25)
+    
+    
+    gtl = F.interpolate(gtl.unsqueeze(0), size=(120,120), mode='nearest').squeeze(0)
+    return gtl
+    
 def test_gt_vec():
     import matplotlib.pyplot as plt 
-  
-    with open('temp/0000000025_2p.pkl', 'rb') as f:
+    link25 =  [[0,1],[1,2],[2,3],[0,4],[5,6],[6,7],[7,8],[4,9],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17],[21,22],[22,23],[23,24]]
+    i = 1
+    
+    with open('pkl480.pkl', 'rb') as f:
         data = pickle.load(f)
-        data = data['keypoint']
-    point = data
+    dat = data[str(i)]
+    point = dat['keypoint']
+    keypoint = point
+    
+    finger_link = [[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20]]
+    dist_finger = [distance(keypoint[i], keypoint[j]) for i,j in finger_link]
+    dist_finger = sum(dist_finger)/len(dist_finger)
+    
+    small_sigma = dist_finger*0.4
+    
     point = [np.array(i) for i in point]
-    gtl = gt_vec(360,360,point)
+    gtl = gt_vec(480,480, point,size=small_sigma, link=link25)
+    
+    
+    gtl = F.interpolate(gtl.unsqueeze(0), size=(120,120), mode='nearest').squeeze(0)
+    print(gtl.shape)
     gtl = gtl.mean(0)
-  
-    for x,y in data:
-        plt.plot(x,y,'ro')
+    
+    thres = 120/480 
+    for x,y in point:
+        x, y = x*thres, y*thres
+        plt.plot(x,y,'r.')
         
     plt.imshow(gtl.transpose(0,1))
     plt.show()
@@ -58,6 +94,7 @@ def gen_gtl_folder(gt_file, savefolder, dim1, dim2, size):
         point = [np.array(x) for x in keypoint[i]]
         width, height = dim1
         gtl = gt_vec(width,height,point,size=size)
+        
         gtl = F.interpolate(gtl.unsqueeze(0), dim2, mode='nearest').squeeze()
         # import matplotlib.pyplot as plt
         # plt.imshow(gtl[0])
@@ -91,15 +128,17 @@ def ex_gen_gtl_folder():
     gen_gtl_folder(gt_folder, savefolder, dim1, dim2)
 
 if __name__ == "__main__":
-    lst = ['gt_random_background_aug.torch','gt_replaced_background.torch','gt_replaced_green.torch']
-    lst2 = ['random_background','replaced_background','replaced_green']
-    a = zip(lst, lst2)
-    for gt, savefol in a:
-        gt_file = 'training/'+gt
-        savefolder = 'training/gtl/'+savefol+'/'
-        dim1 = (360,360)
-        dim2 = (45,45)
-        size = 10
-        gen_gtl_folder(gt_file, savefolder, dim1, dim2, size)
-        print('-----------------------------')
+    # lst = ['gt_random_background_aug.torch','gt_replaced_background.torch','gt_replaced_green.torch']
+    # lst2 = ['random_background','replaced_background','replaced_green']
+    # a = zip(lst, lst2)
+    # for gt, savefol in a:
+    #     gt_file = 'training/'+gt
+    #     savefolder = 'training/gtl/'+savefol+'/'
+    #     dim1 = (360,360)
+    #     dim2 = (45,45)
+    #     size = 10
+    #     gen_gtl_folder(gt_file, savefolder, dim1, dim2, size)
+    #     print('-----------------------------')
    
+    os.chdir('data015')
+    test_gt_vec()
